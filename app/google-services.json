@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "684716486850",
+    "project_id": "qweetrider",
+    "storage_bucket": "qweetrider.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:684716486850:android:41344f8706efe2bb8dcb5b",
+        "android_client_info": {
+          "package_name": "com.qweet.rider"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBx58qsEI2zYK2lJ_6XbAG1gc3c_9jKw20"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
