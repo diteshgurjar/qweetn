@@ -39,7 +39,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-private enum class MainTab { DASHBOARD, ORDERS, WALLET, PROFILE }
+private enum class MainTab { DASHBOARD, ORDERS, WALLET, PROFILE, SUPPORT }
 
 /**
  * Root of the app. Runs the InfinityFree/iFastNet anti-bot challenge solve ONCE per cold
@@ -159,31 +159,33 @@ private fun MainTabs(onGoOnline: () -> Unit, onGoOffline: () -> Unit, onLogout: 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             bottomBar = {
-                NavigationBar {
-                    NavigationBarItem(
-                        selected = tab == MainTab.DASHBOARD,
-                        onClick = { tab = MainTab.DASHBOARD },
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        label = { Text("Home") }
-                    )
-                    NavigationBarItem(
-                        selected = tab == MainTab.ORDERS,
-                        onClick = { tab = MainTab.ORDERS },
-                        icon = { Icon(Icons.Default.Receipt, contentDescription = "Orders") },
-                        label = { Text("Orders") }
-                    )
-                    NavigationBarItem(
-                        selected = tab == MainTab.WALLET,
-                        onClick = { tab = MainTab.WALLET },
-                        icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Wallet") },
-                        label = { Text("Wallet") }
-                    )
-                    NavigationBarItem(
-                        selected = tab == MainTab.PROFILE,
-                        onClick = { tab = MainTab.PROFILE },
-                        icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                        label = { Text("Profile") }
-                    )
+                if (tab != MainTab.SUPPORT) {
+                    NavigationBar {
+                        NavigationBarItem(
+                            selected = tab == MainTab.DASHBOARD,
+                            onClick = { tab = MainTab.DASHBOARD },
+                            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                            label = { Text("Home") }
+                        )
+                        NavigationBarItem(
+                            selected = tab == MainTab.ORDERS,
+                            onClick = { tab = MainTab.ORDERS },
+                            icon = { Icon(Icons.Default.Receipt, contentDescription = "Orders") },
+                            label = { Text("Orders") }
+                        )
+                        NavigationBarItem(
+                            selected = tab == MainTab.WALLET,
+                            onClick = { tab = MainTab.WALLET },
+                            icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Wallet") },
+                            label = { Text("Wallet") }
+                        )
+                        NavigationBarItem(
+                            selected = tab == MainTab.PROFILE,
+                            onClick = { tab = MainTab.PROFILE },
+                            icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                            label = { Text("Profile") }
+                        )
+                    }
                 }
             }
         ) { padding ->
@@ -196,7 +198,8 @@ private fun MainTabs(onGoOnline: () -> Unit, onGoOffline: () -> Unit, onLogout: 
                     )
                     MainTab.ORDERS -> OrdersScreen(onContinueWorkingOrder = { tab = MainTab.DASHBOARD })
                     MainTab.WALLET -> WalletScreen(onManageBankAccount = { tab = MainTab.PROFILE })
-                    MainTab.PROFILE -> ProfileScreen(onLogout = onLogout)
+                    MainTab.PROFILE -> ProfileScreen(onLogout = onLogout, onOpenSupport = { tab = MainTab.SUPPORT })
+                    MainTab.SUPPORT -> SupportScreen(onBack = { tab = MainTab.PROFILE })
                 }
             }
         }

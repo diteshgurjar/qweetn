@@ -67,6 +67,48 @@ data class UpdateLocationRequest(val lat: Double, val lng: Double)
 data class SimpleResponse(val success: Boolean, val error: String? = null)
 data class DeviceTokenRequest(val fcm_token: String, val platform: String = "android")
 
+// ---- Support Chat ----
+
+data class SupportTicketDto(
+    val id: Int,
+    val ticket_no: String,
+    val subject: String,
+    val category: String,
+    val status: String,
+    val order_number: String?,
+    val unread_count: Int,
+    val updated_at: String
+)
+data class SupportTicketsResponse(val success: Boolean, val tickets: List<SupportTicketDto>? = null, val error: String? = null)
+
+data class SupportMessageDto(
+    val id: Int,
+    val sender_type: String, // "rider" | "admin" | "system"
+    val message: String,
+    val time: String,
+    val created_at: String,
+    val attachment_url: String?,
+    val attachment_type: String?,
+    val attachment_name: String?,
+    val attachment_size: String?
+)
+data class SupportMessagesResponse(
+    val success: Boolean,
+    val messages: List<SupportMessageDto>? = null,
+    val status: String? = null,
+    val resolution_reason: String? = null,
+    val error: String? = null
+)
+data class SupportSendResponse(val success: Boolean, val message: SupportMessageDto? = null, val status: String? = null, val error: String? = null)
+
+data class CreateTicketRequest(
+    val subject: String,
+    val message: String,
+    val category: String = "general",
+    val order_id: Int? = null
+)
+data class CreateTicketResponse(val success: Boolean, val ticket_id: Int? = null, val ticket_no: String? = null, val error: String? = null)
+
 // ---- Orders ----
 
 data class OrdersResponse(
@@ -205,16 +247,27 @@ data class RiderProfileDto(
     val id: Int,
     val vehicle_type: String?,
     val vehicle_number: String?,
+    val vehicle_model: String?,
+    val vehicle_chassis_number: String?,
+    val vehicle_engine_number: String?,
+    val vehicle_insurance_number: String?,
+    val vehicle_insurance_expiry: String?,
     val license_number: String?,
     val avatar_url: String?,
     val is_online: Boolean,
     val status: String,
     val rating_avg: Double,
     val kyc_status: String,
+    val kyc_locked: Boolean = false,
     val kyc_rejection_reason: String?,
+    val partner_since: String? = null,
+    val completed_deliveries: Int = 0,
+    val bank_status: String? = null,
     val bank_account_name: String?,
     val bank_account_number: String?,
+    val bank_name: String? = null,
     val bank_ifsc: String?,
+    val bank_branch: String? = null,
     val upi_id: String?,
     val earning_type: String?,
     val earning_value: Double?
@@ -233,9 +286,9 @@ data class UpdateAccountResponse(
     val errors: List<String>? = null
 )
 
-// ---- Vehicle (vehicle.php — multipart, text fields only for now) ----
+// ---- Avatar (avatar.php — photo only, not locked by KYC) ----
 
-data class UpdateVehicleResponse(
+data class UpdateAvatarResponse(
     val success: Boolean,
     val message: String? = null,
     val avatar_url: String? = null,
@@ -243,19 +296,121 @@ data class UpdateVehicleResponse(
     val errors: List<String>? = null
 )
 
-// ---- Bank / payout (bank.php) ----
+// ---- KYC + Vehicle (kyc.php — submitted together once, then locked) ----
 
-data class UpdateBankRequest(
-    val bank_account_name: String,
-    val bank_account_number: String,
-    val bank_ifsc: String,
-    val upi_id: String
+data class KycResponse(
+    val success: Boolean,
+    val data: KycData? = null,
+    val error: String? = null,
+    val errors: List<String>? = null,
+    val locked: Boolean? = null
 )
 
-data class UpdateBankResponse(
+data class KycData(
+    val locked: Boolean,
+    val kyc_status: String,
+    val kyc_id_type: String?,
+    val kyc_id_number: String?,
+    val kyc_id_image_url: String?,
+    val kyc_pan_number: String?,
+    val kyc_pan_image_url: String?,
+    val kyc_vehicle_rc_url: String?,
+    val kyc_selfie_url: String?,
+    val kyc_bank_passbook_url: String?,
+    val kyc_rejection_reason: String?,
+    val kyc_submitted_at: String?,
+    val kyc_reviewed_at: String?,
+    val vehicle_type: String?,
+    val vehicle_number: String?,
+    val vehicle_model: String?,
+    val vehicle_chassis_number: String?,
+    val vehicle_engine_number: String?,
+    val vehicle_insurance_number: String?,
+    val vehicle_insurance_expiry: String?,
+    val pending_change_request: PendingKycRequestDto? = null
+)
+
+data class PendingKycRequestDto(
+    val id: Int,
+    val requested_changes: Map<String, String>?,
+    val submitted_at: String?
+)
+
+data class SubmitKycResponse(
     val success: Boolean,
     val message: String? = null,
+    val error: String? = null,
+    val errors: List<String>? = null,
+    val locked: Boolean? = null
+)
+
+// ---- KYC change requests (kyc-change-request.php) ----
+
+data class KycChangeRequestDto(
+    val id: Int,
+    val requested_changes: Map<String, String>?,
+    val previous_values: Map<String, String>?,
+    val status: String, // pending | approved | rejected
+    val admin_note: String?,
+    val reviewed_at: String?,
+    val created_at: String?
+)
+
+data class KycChangeRequestListResponse(
+    val success: Boolean,
+    val data: List<KycChangeRequestDto>? = null,
     val error: String? = null
+)
+
+data class SubmitKycChangeRequestResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val error: String? = null,
+    val errors: List<String>? = null
+)
+
+// ---- Bank / payout (bank.php — every submission is pending until Admin verifies) ----
+
+data class BankResponse(
+    val success: Boolean,
+    val data: BankData? = null,
+    val error: String? = null
+)
+
+data class BankData(
+    val status: String, // not_submitted | pending | verified
+    val verified: VerifiedBankDto? = null,
+    val pending: Map<String, String>? = null
+)
+
+data class VerifiedBankDto(
+    val bank_account_holder_name: String?,
+    val bank_account_number: String?,
+    val bank_name: String?,
+    val bank_ifsc: String?,
+    val bank_branch: String?,
+    val bank_account_holder_photo_url: String?,
+    val upi_id: String?
+)
+
+data class SubmitBankResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val error: String? = null,
+    val errors: List<String>? = null
+)
+
+// ---- Privacy Policy (privacy-policy.php — content managed by Admin) ----
+
+data class PrivacyPolicyResponse(
+    val success: Boolean,
+    val data: PrivacyPolicyData? = null,
+    val error: String? = null
+)
+
+data class PrivacyPolicyData(
+    val content: String,
+    val updated_at: String?
 )
 
 // ---- Order history (history.php) — past delivered/cancelled deliveries, for the Orders tab ----

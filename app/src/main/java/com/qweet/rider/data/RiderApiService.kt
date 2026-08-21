@@ -5,9 +5,12 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.HTTP
 import retrofit2.http.Multipart
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 import retrofit2.http.PUT
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.PartMap
 import retrofit2.http.Query
 
 /**
@@ -53,17 +56,59 @@ interface RiderApiService {
     @PUT("me.php")
     suspend fun updateAccount(@Body body: UpdateAccountRequest): Response<UpdateAccountResponse>
 
-    // avatar upload isn't wired up yet — text fields only, matches what ProfileScreen sends.
+    // Profile photo — the only profile field NOT locked by KYC.
     @Multipart
-    @POST("vehicle.php")
-    suspend fun updateVehicle(
-        @Part("vehicle_type") vehicleType: okhttp3.RequestBody,
-        @Part("vehicle_number") vehicleNumber: okhttp3.RequestBody,
-        @Part("license_number") licenseNumber: okhttp3.RequestBody
-    ): Response<UpdateVehicleResponse>
+    @POST("avatar.php")
+    suspend fun updateAvatar(
+        @Part avatar: okhttp3.MultipartBody.Part
+    ): Response<UpdateAvatarResponse>
 
+    // ---- KYC + Vehicle (submitted together once, then locked) ----
+
+    @GET("kyc.php")
+    suspend fun getKyc(): Response<KycResponse>
+
+    @Multipart
+    @POST("kyc.php")
+    suspend fun submitKyc(
+        @PartMap fields: Map<String, @JvmSuppressWildcards okhttp3.RequestBody>,
+        @Part kycIdImage: okhttp3.MultipartBody.Part,
+        @Part kycPanImage: okhttp3.MultipartBody.Part,
+        @Part kycVehicleRcImage: okhttp3.MultipartBody.Part,
+        @Part kycSelfieImage: okhttp3.MultipartBody.Part,
+        @Part kycBankPassbookImage: okhttp3.MultipartBody.Part
+    ): Response<SubmitKycResponse>
+
+    @GET("kyc-change-request.php")
+    suspend fun listKycChangeRequests(): Response<KycChangeRequestListResponse>
+
+    // Only "reason" and "fields" (a JSON string) are required — any file @Part is optional,
+    // only send the ones being replaced. Retrofit @Multipart requires at least one @Part in
+    // the signature to be non-null at call time, so callers omit unused file parts by not
+    // adding them to the parts list built at the call site (see ApiClient helper usage).
+    @Multipart
+    @POST("kyc-change-request.php")
+    suspend fun submitKycChangeRequest(
+        @PartMap parts: Map<String, @JvmSuppressWildcards okhttp3.RequestBody>,
+        @Part files: List<okhttp3.MultipartBody.Part>
+    ): Response<SubmitKycChangeRequestResponse>
+
+    // ---- Bank / payout (every submission is pending until Admin verifies) ----
+
+    @GET("bank.php")
+    suspend fun getBank(): Response<BankResponse>
+
+    @Multipart
     @POST("bank.php")
-    suspend fun updateBank(@Body body: UpdateBankRequest): Response<UpdateBankResponse>
+    suspend fun submitBank(
+        @PartMap fields: Map<String, @JvmSuppressWildcards okhttp3.RequestBody>,
+        @Part bankAccountHolderPhoto: okhttp3.MultipartBody.Part
+    ): Response<SubmitBankResponse>
+
+    // ---- Privacy Policy (content managed by Admin) ----
+
+    @GET("privacy-policy.php")
+    suspend fun privacyPolicy(): Response<PrivacyPolicyResponse>
 
     @GET("earnings.php")
     suspend fun earnings(): Response<EarningsResponse>
@@ -83,4 +128,34 @@ interface RiderApiService {
     // Called on logout so a signed-out device stops receiving this rider's pushes.
     @HTTP(method = "DELETE", path = "device-token.php", hasBody = true)
     suspend fun unregisterDeviceToken(@Body body: DeviceTokenRequest): Response<SimpleResponse>
+
+    // ---- Support chat ----
+
+    @GET("support-tickets.php")
+    suspend fun supportTickets(): Response<SupportTicketsResponse>
+
+    @POST("support-tickets.php")
+    suspend fun createSupportTicket(@Body body: CreateTicketRequest): Response<CreateTicketResponse>
+
+    @GET("support-messages.php")
+    suspend fun supportMessages(
+        @Query("ticket_id") ticketId: Int,
+        @Query("after_id") afterId: Int = 0
+    ): Response<SupportMessagesResponse>
+
+    // Text-only reply — no attachment (multipart variant below covers that case).
+    @FormUrlEncoded
+    @POST("support-messages.php")
+    suspend fun sendSupportMessage(
+        @Field("ticket_id") ticketId: Int,
+        @Field("message") message: String
+    ): Response<SupportSendResponse>
+
+    @Multipart
+    @POST("support-messages.php")
+    suspend fun sendSupportMessageWithAttachment(
+        @Part("ticket_id") ticketId: okhttp3.RequestBody,
+        @Part("message") message: okhttp3.RequestBody,
+        @Part attachment: okhttp3.MultipartBody.Part
+    ): Response<SupportSendResponse>
 }
